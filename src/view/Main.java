@@ -7,16 +7,26 @@ import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import model.Cell;
 import model.Checker;
 import model.CheckerType;
 import model.CheckerColor;
 
+import javax.swing.*;
+
 import static model.CheckerType.KING;
+import static model.CheckerType.USUAL;
 
 public class Main extends Application {
 
@@ -24,8 +34,19 @@ public class Main extends Application {
         Application.launch(args);
     }
 
+    Text name = new Text("Checkers");
+    Text turnText = new Text("Turn:");
+    Text white = new Text("White");
+    Text black = new Text("Black");
+
+
     private Group cells = new Group();
     private Group checkers = new Group();
+
+    Pane root = new Pane();
+    Pane clear = new Pane();
+
+    Scene scene = new Scene(clear);
 
     private static final int width = 8;
     private static final int length = 8;
@@ -33,7 +54,9 @@ public class Main extends Application {
     private boolean canEatChecker = false;
     private boolean currentKillSequence = false; // служит сигналом, что идёт серия поеданий
 
-    private int turn = -1;
+    private int turn = 1;
+    private int whiteAmount = 12;
+    private int blackAmount = 12;
 
     public static double cellSize = 100;
 
@@ -41,11 +64,60 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Scene scene = new Scene(playField());
+        Button newGame = new Button("New game");
+        newGame.setLayoutX(850);
+        newGame.setLayoutY(200);
+        newGame.setPrefSize(300, 50);
+        newGame.setFont(Font.font("Verdana", 30));
+        root.getChildren().add(newGame);
+        Pane playField = playField();
+        scene.setRoot(playField);
         primaryStage.setResizable(false);
         primaryStage.setTitle("Checkers");
         primaryStage.setScene(scene);
+        newGame.setOnMouseClicked(e -> {
+            newGame(primaryStage);
+        });
         primaryStage.show();
+    }
+
+
+    void newGame(Stage primaryStage) {
+        cleanup();
+        start(primaryStage);
+    }
+
+    void cleanup() {
+        root.getChildren().clear();
+        cells.getChildren().clear();
+        checkers.getChildren().clear();
+        turn = 1;
+        canEatChecker = false;
+        currentKillSequence = false;
+        whiteAmount = 12;
+        blackAmount = 12;
+    }
+
+    void stopGame() { // появление окна с результатами игры
+        Text resultText = new Text();
+        resultText.setFont(Font.font("Verdana", 22));
+        resultText.setLayoutX(35);
+        resultText.setLayoutY(50);
+        if (whiteAmount == 0) {
+            resultText.setText("Black win");
+        }
+        if (blackAmount == 0) {
+            resultText.setText("White win");
+        }
+
+        Pane winnerPane = new Pane();
+        winnerPane.getChildren().add(resultText);
+
+        Scene gameOver = new Scene(winnerPane, 230, 100);
+        Stage newWindow = new Stage();
+        newWindow.setTitle("Result");
+        newWindow.setScene(gameOver);
+        newWindow.show();
     }
 
     /* Функция проверяет, может ли данная шашка съесть кого-либо в этот ход
@@ -67,9 +139,24 @@ public class Main extends Application {
                 || type == CheckerType.KING && (condition1 || condition2);
     }
 
-    public Group playField() { // создание игрового поля
-        Group root = new Group();
-        root.getChildren().addAll(cells, checkers);
+    public Pane playField() { // создание игрового поля
+
+        name.setFont(Font.font("Verdana", 60));
+        name.setLayoutX(860);
+        name.setLayoutY(80);
+        turnText.setFont(Font.font("Verdana", 30));
+        turnText.setLayoutX(840);
+        turnText.setLayoutY(360);
+        white.setStyle("-fx-opacity: 0.0;");
+        white.setFont(Font.font("Verdana", 30));
+        white.setLayoutX(940);
+        white.setLayoutY(360);
+        black.setFont(Font.font("Verdana", 30));
+        black.setLayoutX(940);
+        black.setLayoutY(360);
+        black.setStyle("-fx-opacity: 1.0;");
+        root.setPrefSize(1200, 800);
+        root.getChildren().addAll(cells, checkers, name, turnText, white, black);
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < length; y++) {
@@ -97,7 +184,8 @@ public class Main extends Application {
         if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0) return MoveResult.NONE;
         int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2);
         int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
-        for (int x = 0; x < 8; x++) {
+
+        for (int x = 0; x < 8; x++) { // проверка, может ли хоть одна шашка есть И ходить
             for (int y = 0; y < 8; y++) {
                 if (board[x][y].hasChecker() && board[x][y].getChecker().getColor().direction == turn) {
                     Checker currentChecker = board[x][y].getChecker();
@@ -107,13 +195,13 @@ public class Main extends Application {
                 }
             }
         }
+
         Cell between = board[otherPieceX][otherPieceY];
         if (!board[currentX][currentY].hasChecker() && (currentY - checker.getPreviousY() == checker.getColor().direction
                 && Math.abs(currentX - checker.getPreviousX()) == 1 || checker.getType() == CheckerType.KING
                 && Math.abs(currentX - checker.getPreviousX()) == 1 && Math.abs(currentY - checker.getPreviousY()) == 1)
                 && !canEat(checker.getColor(), checker.getPreviousX(), checker.getPreviousY(), checker.getType())
                 && turn == checker.getColor().direction && !canEatChecker) {
-            System.out.println("ыыы");
             return MoveResult.USUAL;
         } else if (!board[currentX][currentY].hasChecker()
                 && Math.abs(currentX - checker.getPreviousX()) == 2 && between.hasChecker()
@@ -144,8 +232,8 @@ public class Main extends Application {
                 int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
                 between = board[otherPieceX][otherPieceY];
             }
-            System.out.println(currentX);
-            System.out.println(currentY);
+            System.out.println("Current X" + currentX);
+            System.out.println("Current Y" + currentY);
 
             MoveResult result = moveResult(checker, currentX, currentY);
             switch (result) {
@@ -163,16 +251,25 @@ public class Main extends Application {
                     between.setChecker(null);
                     currentKillSequence = true;
                     checker.killSequence = true;
-                    if (!canEat(checker.getColor(), currentX, currentY, checker.getType())) {
+
+                    if (!canEat(checker.getColor(), currentX, currentY, checker.getType())) { // для отмены киллстрика
                         turn = -1 * turn;
                         currentKillSequence = false;
                         checker.killSequence = false;
                     }
                     canEatChecker = false;
+
+                    if (checker.getColor() == CheckerColor.WHITE) { // счётчик кол-ва находящихся на доске шашек
+                        blackAmount--;
+                    } else {
+                        whiteAmount--;
+                    }
+                    if (whiteAmount == 0 || blackAmount == 0) {
+                        stopGame();
+                    }
                     break;
                 case NONE:
                     checker.returnChecker();
-                    System.out.println(checker.getPreviousX());
                     break;
             }
             if (result != MoveResult.NONE && (currentY == 0 || currentY == 7)) { // появление дамки
@@ -180,6 +277,13 @@ public class Main extends Application {
                 Checker king = putChecker(color, currentX, currentY, CheckerType.KING);
                 board[currentX][currentY].setChecker(king);
                 checkers.getChildren().add(king);
+            }
+            if (turn == -1) {
+                black.setStyle("-fx-opacity: 0.0;");
+                white.setStyle("-fx-opacity: 1.0;");
+            } else {
+                white.setStyle("-fx-opacity: 0.0;");
+                black.setStyle("-fx-opacity: 1.0;");
             }
         });
         return checker;

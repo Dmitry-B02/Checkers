@@ -1,11 +1,16 @@
 package model;
 
+import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
+import javafx.scene.shape.Ellipse;
 import view.Main;
 
+import java.awt.*;
+
 import static model.CheckerType.KING;
+import static view.Main.cellSize;
 
 public class Checker extends Pane {
 
@@ -32,20 +37,15 @@ public class Checker extends Pane {
         this.color = color;
         this.type = type;
 
+        Ellipse ellipse = new Ellipse(cellSize * 0.42, cellSize * 0.42);
+        ellipse.setFill(color == CheckerColor.WHITE ? Color.valueOf("#FFFAFA") : Color.valueOf("#000000"));
         if (type == KING) {
-            Image checkerImg = color == CheckerColor.WHITE ? // создание модельки шашки
-                    new Image("/assets/white_queen.png") :
-                    new Image("/assets/black_queen.png");
-            ImageView imageView = new ImageView(checkerImg);
-            getChildren().add(imageView);
+            ellipse.setStroke(Color.valueOf("#FF00FF"));
+            ellipse.setStrokeWidth(cellSize * 0.08);
         }
-        else {
-            Image checkerImg = color == CheckerColor.WHITE ? // создание модельки шашки
-                    new Image("/assets/white.png") :
-                    new Image("/assets/black.png");
-            ImageView imageView = new ImageView(checkerImg);
-            getChildren().add(imageView);
-        }
+        ellipse.setTranslateX(cellSize - 50);
+        ellipse.setTranslateY(cellSize - 50);
+        getChildren().add(ellipse);
 
         placeChecker(x, y);
 
@@ -60,14 +60,14 @@ public class Checker extends Pane {
     }
 
     public void placeChecker(int x, int y) {
-        firstX = x * Main.cellSize;
-        firstY = y * Main.cellSize;
+        firstX = x * cellSize;
+        firstY = y * cellSize;
         relocate(firstX, firstY);
     }
 
     public void returnChecker() {
-        checkerX = (int) ((int) (firstX / Main.cellSize) * Main.cellSize);
-        checkerY = (int) ((int) (firstY / Main.cellSize) * Main.cellSize);
+        checkerX = (int) ((int) (firstX / cellSize) * cellSize);
+        checkerY = (int) ((int) (firstY / cellSize) * cellSize);
         relocate(checkerX, checkerY);
     }
 
