@@ -2,13 +2,21 @@ package view;
 
 import Controller.MoveResult;
 import javafx.application.Application;
+import javafx.embed.swing.JFXPanel;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import model.Cell;
 import model.Checker;
 import model.CheckerType;
 import model.CheckerColor;
+
+import static model.CheckerType.KING;
 
 public class Main extends Application {
 
@@ -23,6 +31,7 @@ public class Main extends Application {
     private static final int length = 8;
 
     private boolean canEatChecker = false;
+    private boolean currentKillSequence = false; // служит сигналом, что идёт серия поеданий
 
     private int turn = -1;
 
@@ -39,6 +48,9 @@ public class Main extends Application {
         primaryStage.show();
     }
 
+    /* Функция проверяет, может ли данная шашка съесть кого-либо в этот ход
+    (с учётом краёв поля и того, является ли она дамкой)
+     */
     private boolean canEat(CheckerColor color, int x, int y, CheckerType type) {
         boolean condition1 = (x - 1 >= 0 && y - 1 >= 0 && board[x - 1][y - 1].hasChecker() && board[x - 1][y - 1].getChecker().getColor() != color
                 && x - 2 >= 0 && y - 2 >= 0 && !board[x - 2][y - 2].hasChecker()
@@ -55,7 +67,7 @@ public class Main extends Application {
                 || type == CheckerType.KING && (condition1 || condition2);
     }
 
-    private Group playField() { // создание игрового поля
+    public Group playField() { // создание игрового поля
         Group root = new Group();
         root.getChildren().addAll(cells, checkers);
 
@@ -109,7 +121,8 @@ public class Main extends Application {
                 || currentY - checker.getPreviousY() == checker.getColor().direction * 2
                 && between.getChecker().getColor().direction != checker.getColor().direction)
                 && canEat(checker.getColor(), checker.getPreviousX(), checker.getPreviousY(), checker.getType())
-                && turn == checker.getColor().direction && canEatChecker) {
+                && turn == checker.getColor().direction && canEatChecker && (currentKillSequence && checker.killSequence
+                || !currentKillSequence)) {
             return MoveResult.KILL;
         } else {
             System.out.println("Deny");
@@ -117,10 +130,13 @@ public class Main extends Application {
         }
     }
 
+    /* Функция, в зависимости от результата движения,
+     определяет, что делать с данной шашкой
+     */
     public Checker putChecker(CheckerColor color, int x, int y, CheckerType type) {
         Checker checker = new Checker(color, x, y, type);
         checker.setOnMouseReleased(e -> {
-            Cell between = null;
+            Cell between = null; // клетка поля между шашкой и местом, куда она ходит (нужна для case KILL)
             int currentX = (int) (e.getSceneX() / Main.cellSize);
             int currentY = (int) (e.getSceneY() / Main.cellSize);
             if (currentX < 8 && currentY < 8) {
@@ -145,14 +161,17 @@ public class Main extends Application {
                     checker.placeChecker(currentX, currentY);
                     checkers.getChildren().remove(between.getChecker());
                     between.setChecker(null);
+                    currentKillSequence = true;
+                    checker.killSequence = true;
                     if (!canEat(checker.getColor(), currentX, currentY, checker.getType())) {
                         turn = -1 * turn;
+                        currentKillSequence = false;
+                        checker.killSequence = false;
                     }
                     canEatChecker = false;
                     break;
                 case NONE:
                     checker.returnChecker();
-                    checker.placeChecker(checker.getPreviousX(), checker.getPreviousY());
                     System.out.println(checker.getPreviousX());
                     break;
             }

@@ -14,6 +14,7 @@ public class Checker extends Pane {
     int checkerX, checkerY;
     private CheckerColor color;
     private CheckerType type;
+    public boolean killSequence = false; // нужен для проверки, была ли уже съедена данной шашкой какая-либо шашка
 
     public CheckerColor getColor() {
         return color;
@@ -21,6 +22,10 @@ public class Checker extends Pane {
 
     public CheckerType getType() {
         return type;
+    }
+
+    public boolean hasKillSequence() {
+        return killSequence;
     }
 
     public Checker(CheckerColor color, int x, int y, CheckerType type) {
