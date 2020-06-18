@@ -44,14 +44,14 @@ public class Main extends Application {
     private Group checkers = new Group();
 
     Pane root = new Pane();
-    Pane clear = new Pane();
+    Pane clear = new Pane(); // для избежания ошибкок при начале новой игры (т.к. у двух сцен не может быть один root)
 
     Scene scene = new Scene(clear);
 
     private static final int width = 8;
     private static final int length = 8;
 
-    private boolean canEatChecker = false;
+    private boolean canEatChecker = false; // может ли хоть одна шашка съесть кого-то
     private boolean currentKillSequence = false; // служит сигналом, что идёт серия поеданий
 
     private int turn = 1;
@@ -182,10 +182,10 @@ public class Main extends Application {
     public MoveResult moveResult(Checker checker, int currentX, int currentY) { // результат движения
         // для избежания IndexOutOfBoundsException при передвижении шашки за границы игрового поля
         if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0) return MoveResult.NONE;
-        int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2);
+        int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2); // для case KILL
         int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
 
-        for (int x = 0; x < 8; x++) { // проверка, может ли хоть одна шашка есть И ходить
+        for (int x = 0; x < 8; x++) { // проверка, может ли хоть одна шашка есть
             for (int y = 0; y < 8; y++) {
                 if (board[x][y].hasChecker() && board[x][y].getChecker().getColor().direction == turn) {
                     Checker currentChecker = board[x][y].getChecker();
@@ -196,7 +196,7 @@ public class Main extends Application {
             }
         }
 
-        Cell between = board[otherPieceX][otherPieceY];
+        Cell between = board[otherPieceX][otherPieceY]; // для case KILL
         if (!board[currentX][currentY].hasChecker() && (currentY - checker.getPreviousY() == checker.getColor().direction
                 && Math.abs(currentX - checker.getPreviousX()) == 1 || checker.getType() == CheckerType.KING
                 && Math.abs(currentX - checker.getPreviousX()) == 1 && Math.abs(currentY - checker.getPreviousY()) == 1)
@@ -227,7 +227,7 @@ public class Main extends Application {
             Cell between = null; // клетка поля между шашкой и местом, куда она ходит (нужна для case KILL)
             int currentX = (int) (e.getSceneX() / Main.cellSize);
             int currentY = (int) (e.getSceneY() / Main.cellSize);
-            if (currentX < 8 && currentY < 8) {
+            if (currentX < 8 && currentX >= 0 && currentY < 8 && currentY >= 0) {
                 int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2);
                 int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
                 between = board[otherPieceX][otherPieceY];
