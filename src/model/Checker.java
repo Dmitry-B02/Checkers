@@ -1,13 +1,8 @@
 package model;
 
 import javafx.scene.paint.Color;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Ellipse;
-import view.Main;
-
-import java.awt.*;
 
 import static model.CheckerType.KING;
 import static view.Main.cellSize;

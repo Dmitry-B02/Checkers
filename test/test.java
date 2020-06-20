@@ -14,26 +14,25 @@ public class test {
         Main testapp = new Main();
         testapp.playField();
         Checker test1 = new Checker(CheckerColor.BLACK, 5, 4, CheckerType.KING);
-        board[5][4].setChecker(test1);
+        board.setChecker(5, 4, test1);
 
-        board[1][0].setChecker(null);
+        board.setChecker(1, 0, null);
         Checker test2 = new Checker(CheckerColor.WHITE, 1, 0, CheckerType.USUAL);
-        board[1][0].setChecker(test2);
+        board.setChecker(1, 0, test2);
 
         Checker test3 = new Checker(CheckerColor.BLACK, 2, 3, CheckerType.USUAL);
-        board[3][4].setChecker(test3);
+        board.setChecker(3, 4, test3);
 
         Checker test4 = new Checker(CheckerColor.WHITE, 6, 3, CheckerType.USUAL);
-        board[6][3].setChecker(test4);
+        board.setChecker(6, 3, test4);
 
-        assertEquals(testapp.moveResult(board[0][5].getChecker(), 1, 4), MoveResult.NONE); // т.к. первый ход за чёрными
+        assertEquals(testapp.moveResult(board.getChecker(0, 5), 1, 4), MoveResult.NONE); // т.к. первый ход за чёрными
 
-        assertEquals(8, board.length);
-        assertTrue(board[5][4].hasChecker() && board[5][4].getChecker().getType() == CheckerType.KING);
-        assertEquals(board[1][0].getChecker().getColor(), CheckerColor.WHITE);
-        assertEquals(testapp.moveResult(board[5][4].getChecker(), 3, 2), MoveResult.NONE); // дамка не может ходить через клетку
-        assertEquals(testapp.moveResult(board[3][4].getChecker(), 2, 3), MoveResult.NONE); // обычная шашка не может ходить назад
-        assertEquals(testapp.moveResult(board[5][2].getChecker(), 7, 4), MoveResult.KILL); // съедение шашки
-        assertEquals(testapp.moveResult(board[7][2].getChecker(), 8, 3), MoveResult.NONE); // нельзя выйти за пределы поля
+        assertTrue(board.hasChecker(5, 4) && board.getChecker(5, 4).getType() == CheckerType.KING);
+        assertEquals(board.getChecker(1, 0).getColor(), CheckerColor.WHITE);
+        assertEquals(testapp.moveResult(board.getChecker(5, 4), 3, 2), MoveResult.NONE); // дамка не может ходить через клетку
+        assertEquals(testapp.moveResult(board.getChecker(3, 4), 2, 3), MoveResult.NONE); // обычная шашка не может ходить назад
+        assertEquals(testapp.moveResult(board.getChecker(5, 2), 7, 4), MoveResult.KILL); // съедение шашки
+        assertEquals(testapp.moveResult(board.getChecker(7, 2), 8, 3), MoveResult.NONE); // нельзя выйти за пределы поля
     }
 }

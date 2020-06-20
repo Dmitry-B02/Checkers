@@ -1,38 +1,20 @@
 package view;
 
 import Controller.MoveResult;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javafx.util.Duration;
-import model.Cell;
-import model.Checker;
-import model.CheckerType;
-import model.CheckerColor;
+import model.*;
 
 import java.util.Timer;
 import java.util.TimerTask;
-
-import static model.CheckerType.KING;
-import static model.CheckerType.USUAL;
 
 public class Main extends Application {
 
@@ -47,7 +29,7 @@ public class Main extends Application {
 
 
     private Group cells = new Group();
-    private Group checkers = new Group();
+    public static Group checkers = new Group();
 
     Pane root = new Pane();
     Pane clear = new Pane(); // для избежания ошибкок при начале новой игры (т.к. у двух сцен не может быть один root)
@@ -67,10 +49,12 @@ public class Main extends Application {
     private int whiteAmount = 12;
     private int blackAmount = 12;
     private int time = 60;
+    int otherPieceX = -1;
+    int otherPieceY = -1;
 
     public static double cellSize = 100;
 
-    public static Cell[][] board = new Cell[width][length];
+    public static Board board;
 
     Timer timer = new Timer();
 
@@ -170,14 +154,14 @@ public class Main extends Application {
     (с учётом краёв поля и того, является ли она дамкой)
      */
     private boolean canEat(CheckerColor color, int x, int y, CheckerType type) {
-        boolean condition1 = (x - 1 >= 0 && y - 1 >= 0 && board[x - 1][y - 1].hasChecker() && board[x - 1][y - 1].getChecker().getColor() != color
-                && x - 2 >= 0 && y - 2 >= 0 && !board[x - 2][y - 2].hasChecker()
-                || x + 1 < 8 && y - 1 >= 0 && board[x + 1][y - 1].hasChecker() && board[x + 1][y - 1].getChecker().getColor() != color
-                && x + 2 < 8 && y - 2 >= 0 && !board[x + 2][y - 2].hasChecker());
-        boolean condition2 = (x - 1 >= 0 && y + 1 < 8 && board[x - 1][y + 1].hasChecker() && board[x - 1][y + 1].getChecker().getColor() != color
-                && x - 2 >= 0 && y + 2 < 8 && !board[x - 2][y + 2].hasChecker()
-                || x + 1 < 8 && y + 1 < 8 && board[x + 1][y + 1].hasChecker() && board[x + 1][y + 1].getChecker().getColor() != color
-                && x + 2 < 8 && y + 2 < 8 && !board[x + 2][y + 2].hasChecker());
+        boolean condition1 = (x - 1 >= 0 && y - 1 >= 0 && board.hasChecker(x - 1, y - 1) && board.getChecker(x - 1, y - 1).getColor() != color
+                && x - 2 >= 0 && y - 2 >= 0 && !board.hasChecker(x - 2, y - 2)
+                || x + 1 < 8 && y - 1 >= 0 && board.hasChecker(x + 1, y - 1) && board.getChecker(x + 1, y - 1).getColor() != color
+                && x + 2 < 8 && y - 2 >= 0 && !board.hasChecker(x + 2, y - 2));
+        boolean condition2 = (x - 1 >= 0 && y + 1 < 8 && board.hasChecker(x - 1, y + 1) && board.getChecker(x - 1, y + 1).getColor() != color
+                && x - 2 >= 0 && y + 2 < 8 && !board.hasChecker(x - 2, y + 2)
+                || x + 1 < 8 && y + 1 < 8 && board.hasChecker(x + 1, y + 1) && board.getChecker(x + 1, y + 1).getColor() != color
+                && x + 2 < 8 && y + 2 < 8 && !board.hasChecker(x + 2, y + 2));
         return type == CheckerType.USUAL && color == CheckerColor.WHITE
                 && condition1
                 || type == CheckerType.USUAL && color == CheckerColor.BLACK
@@ -210,7 +194,6 @@ public class Main extends Application {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < length; y++) {
                 Cell cell = new Cell((x + y) % 2 == 0, x, y);
-                board[x][y] = cell;
                 cells.getChildren().add(cell);
 
                 Checker checker = null;
@@ -220,24 +203,24 @@ public class Main extends Application {
                     checker = putChecker(CheckerColor.WHITE, x, y, CheckerType.USUAL);
                 }
                 if (checker != null) {
-                    cell.setChecker(checker);
                     checkers.getChildren().add(checker);
                 }
             }
         }
+        board = new Board(width, length);
         return root;
     }
 
     public MoveResult moveResult(Checker checker, int currentX, int currentY) { // результат движения
         // для избежания IndexOutOfBoundsException при передвижении шашки за границы игрового поля
         if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0 || freezeCheckers) return MoveResult.NONE;
-        int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2); // для case KILL
-        int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
+        otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2); // для case KILL
+        otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
 
         for (int x = 0; x < 8; x++) { // проверка, может ли хоть одна шашка есть
             for (int y = 0; y < 8; y++) {
-                if (board[x][y].hasChecker() && board[x][y].getChecker().getColor().direction == turn) {
-                    Checker currentChecker = board[x][y].getChecker();
+                if (board.hasChecker(x, y) && board.getChecker(x, y).getColor().direction == turn) {
+                    Checker currentChecker = board.getChecker(x, y);
                     if (canEat(currentChecker.getColor(), x, y, currentChecker.getType())) {
                         canEatChecker = true;
                     }
@@ -245,24 +228,24 @@ public class Main extends Application {
             }
         }
 
-        Cell between = board[otherPieceX][otherPieceY]; // для case KILL
-        if (!board[currentX][currentY].hasChecker() && (currentY - checker.getPreviousY() == checker.getColor().direction
+        if (!board.hasChecker(currentX, currentY) && (currentY - checker.getPreviousY() == checker.getColor().direction
                 && Math.abs(currentX - checker.getPreviousX()) == 1 || checker.getType() == CheckerType.KING
                 && Math.abs(currentX - checker.getPreviousX()) == 1 && Math.abs(currentY - checker.getPreviousY()) == 1)
                 && !canEat(checker.getColor(), checker.getPreviousX(), checker.getPreviousY(), checker.getType())
                 && turn == checker.getColor().direction && !canEatChecker) {
             return MoveResult.USUAL;
-        } else if (!board[currentX][currentY].hasChecker()
-                && Math.abs(currentX - checker.getPreviousX()) == 2 && between.hasChecker()
+        } else if (!board.hasChecker(currentX, currentY)
+                && Math.abs(currentX - checker.getPreviousX()) == 2 && board.hasChecker(otherPieceX, otherPieceY)
                 && (checker.getType() == CheckerType.KING && Math.abs(currentY - checker.getPreviousY()) == 2
                 || currentY - checker.getPreviousY() == checker.getColor().direction * 2
-                && between.getChecker().getColor().direction != checker.getColor().direction)
+                && board.getChecker(otherPieceX, otherPieceY).getColor().direction != checker.getColor().direction)
                 && canEat(checker.getColor(), checker.getPreviousX(), checker.getPreviousY(), checker.getType())
                 && turn == checker.getColor().direction && canEatChecker && (currentKillSequence && checker.killSequence
                 || !currentKillSequence)) {
             return MoveResult.KILL;
         } else {
             System.out.println("Deny");
+            System.out.println(board.hasChecker(1, 0));
             return MoveResult.NONE;
         }
     }
@@ -273,13 +256,11 @@ public class Main extends Application {
     public Checker putChecker(CheckerColor color, int x, int y, CheckerType type) {
         Checker checker = new Checker(color, x, y, type);
         checker.setOnMouseReleased(e -> {
-            Cell between = null; // клетка поля между шашкой и местом, куда она ходит (нужна для case KILL)
             int currentX = (int) (e.getSceneX() / Main.cellSize);
             int currentY = (int) (e.getSceneY() / Main.cellSize);
             if (currentX < 8 && currentX >= 0 && currentY < 8 && currentY >= 0) {
-                int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2);
-                int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
-                between = board[otherPieceX][otherPieceY];
+                otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2);
+                otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
             }
             System.out.println("Current X" + currentX);
             System.out.println("Current Y" + currentY);
@@ -287,17 +268,17 @@ public class Main extends Application {
             MoveResult result = moveResult(checker, currentX, currentY);
             switch (result) {
                 case USUAL:
-                    board[checker.getPreviousX()][checker.getPreviousY()].setChecker(null);
-                    board[currentX][currentY].setChecker(checker);
+                    board.setChecker(checker.getPreviousX(), checker.getPreviousY(), null);
+                    board.setChecker(currentX, currentY, checker);
                     checker.placeChecker(currentX, currentY);
                     turn = -1 * turn;
                     break;
                 case KILL:
-                    board[checker.getPreviousX()][checker.getPreviousY()].setChecker(null);
-                    board[currentX][currentY].setChecker(checker);
+                    board.setChecker(checker.getPreviousX(), checker.getPreviousY(), null);
+                    board.setChecker(currentX, currentY, checker);
                     checker.placeChecker(currentX, currentY);
-                    checkers.getChildren().remove(between.getChecker());
-                    between.setChecker(null);
+                    checkers.getChildren().remove(board.getChecker(otherPieceX, otherPieceY));
+                    board.setChecker(otherPieceX, otherPieceY, null);
                     currentKillSequence = true;
                     checker.killSequence = true;
 
@@ -324,7 +305,7 @@ public class Main extends Application {
             if (result != MoveResult.NONE && (currentY == 0 || currentY == 7)) { // появление дамки
                 checkers.getChildren().remove(checker);
                 Checker king = putChecker(color, currentX, currentY, CheckerType.KING);
-                board[currentX][currentY].setChecker(king);
+                board.setChecker(currentX, currentY, king);
                 checkers.getChildren().add(king);
             }
             if (turn == -1) {
