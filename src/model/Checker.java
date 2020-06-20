@@ -29,10 +29,6 @@ public class Checker extends Pane {
         return type;
     }
 
-    public boolean hasKillSequence() {
-        return killSequence;
-    }
-
     public Checker(CheckerColor color, int x, int y, CheckerType type) {
         this.color = color;
         this.type = type;

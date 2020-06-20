@@ -1,7 +1,11 @@
 package view;
 
 import Controller.MoveResult;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -18,12 +22,14 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import model.Cell;
 import model.Checker;
 import model.CheckerType;
 import model.CheckerColor;
 
-import javax.swing.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static model.CheckerType.KING;
 import static model.CheckerType.USUAL;
@@ -53,17 +59,32 @@ public class Main extends Application {
 
     private boolean canEatChecker = false; // может ли хоть одна шашка съесть кого-то
     private boolean currentKillSequence = false; // служит сигналом, что идёт серия поеданий
+    private boolean newGame = false; // служит сигналом, что была нажата New Game (для исключения нескольких запусков таймера)
+    private boolean freezeCheckers = false; // нужна для "заморозки" шашек после конца игры
 
     private int turn = 1;
+    private int currentTurn = turn; // нужен для обнуления таймера
     private int whiteAmount = 12;
     private int blackAmount = 12;
+    private int time = 60;
 
     public static double cellSize = 100;
 
     public static Cell[][] board = new Cell[width][length];
 
+    Timer timer = new Timer();
+
+    Text timeText = new Text("Time left:60");
+
     @Override
     public void start(Stage primaryStage) {
+        timeText.setText("Time left:" + time);
+        timeText.setFill(Color.BLACK);
+        timeText.setStyle("-fx-opacity: 0.4;");
+        if (!newGame) {
+            startCountDown();
+        }
+        newGame = true;
         Button newGame = new Button("New game");
         newGame.setLayoutX(850);
         newGame.setLayoutY(200);
@@ -81,6 +102,27 @@ public class Main extends Application {
         primaryStage.show();
     }
 
+    public void startCountDown() {
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Platform.runLater(() -> {
+                    time--;
+                    timeText.setText("Time left:" + time);
+                    if (time < 11) {
+                        timeText.setStyle("-fx-opacity: 1.0;");
+                        timeText.setFill(Color.RED);
+                    }
+                    if (time == 0) {
+                        stopGame();
+                    }
+                    if (time <= 0 || whiteAmount == 0 || blackAmount == 0) {
+                        timeText.setText("Game over!");
+                    }
+                });
+            }
+        }, 1000, 1000); // каждую секунду
+    }
 
     void newGame(Stage primaryStage) {
         cleanup();
@@ -96,17 +138,21 @@ public class Main extends Application {
         currentKillSequence = false;
         whiteAmount = 12;
         blackAmount = 12;
+        time = 60;
+        freezeCheckers = false;
+        timer.purge();
     }
 
     void stopGame() { // появление окна с результатами игры
+        freezeCheckers = true;
         Text resultText = new Text();
         resultText.setFont(Font.font("Verdana", 22));
         resultText.setLayoutX(35);
         resultText.setLayoutY(50);
-        if (whiteAmount == 0) {
+        if (whiteAmount == 0 || time == 0 && turn == -1) {
             resultText.setText("Black win");
         }
-        if (blackAmount == 0) {
+        if (blackAmount == 0 || time == 0 && turn == 1) {
             resultText.setText("White win");
         }
 
@@ -155,8 +201,11 @@ public class Main extends Application {
         black.setLayoutX(940);
         black.setLayoutY(360);
         black.setStyle("-fx-opacity: 1.0;");
+        timeText.setLayoutX(840);
+        timeText.setLayoutY(460);
+        timeText.setFont(Font.font("Verdana", 30));
         root.setPrefSize(1200, 800);
-        root.getChildren().addAll(cells, checkers, name, turnText, white, black);
+        root.getChildren().addAll(cells, checkers, name, turnText, white, black, timeText);
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < length; y++) {
@@ -181,7 +230,7 @@ public class Main extends Application {
 
     public MoveResult moveResult(Checker checker, int currentX, int currentY) { // результат движения
         // для избежания IndexOutOfBoundsException при передвижении шашки за границы игрового поля
-        if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0) return MoveResult.NONE;
+        if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0 || freezeCheckers) return MoveResult.NONE;
         int otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2); // для case KILL
         int otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
 
@@ -284,6 +333,11 @@ public class Main extends Application {
             } else {
                 white.setStyle("-fx-opacity: 0.0;");
                 black.setStyle("-fx-opacity: 1.0;");
+            }
+            if (currentTurn != turn) {
+                time = 60;
+                timer.purge();
+                currentTurn = turn;
             }
         });
         return checker;
