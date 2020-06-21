@@ -29,7 +29,7 @@ public class Main extends Application {
 
 
     private Group cells = new Group();
-    public static Group checkers = new Group();
+    public Group checkers = new Group();
 
     Pane root = new Pane();
     Pane clear = new Pane(); // для избежания ошибкок при начале новой игры (т.к. у двух сцен не может быть один root)
@@ -171,6 +171,8 @@ public class Main extends Application {
 
     public Pane playField() { // создание игрового поля
 
+        board = new Board(width, length);
+
         name.setFont(Font.font("Verdana", 60));
         name.setLayoutX(860);
         name.setLayoutY(80);
@@ -204,16 +206,17 @@ public class Main extends Application {
                 }
                 if (checker != null) {
                     checkers.getChildren().add(checker);
+                    board.setChecker(x, y, checker);
                 }
             }
         }
-        board = new Board(width, length);
         return root;
     }
 
     public MoveResult moveResult(Checker checker, int currentX, int currentY) { // результат движения
         // для избежания IndexOutOfBoundsException при передвижении шашки за границы игрового поля
         if (currentX > 7 || currentY > 7 || currentX < 0 || currentY < 0 || freezeCheckers) return MoveResult.NONE;
+
         otherPieceX = Math.abs((currentX + checker.getPreviousX()) / 2); // для case KILL
         otherPieceY = Math.abs((currentY + checker.getPreviousY()) / 2);
 
